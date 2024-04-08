@@ -31,7 +31,12 @@ void handler(int sig) {
     pid_t cpu_p = pid_storage(-1, 0, 0);
     pid_t mem_p = pid_storage(-1, 1, 0);
     pid_t usr_p = pid_storage(-1, 2, 0);
-
+    if(sig==SIGTSTP){
+        if (cpu_p != -1) kill(cpu_p, SIGCONT);
+        if (mem_p != -1) kill(mem_p, SIGCONT);
+        if (usr_p != -1) kill(usr_p, SIGCONT);
+        return;
+    }
     if (cpu_p != -1) kill(cpu_p, SIGSTOP);
     if (mem_p != -1) kill(mem_p, SIGSTOP);
     if (usr_p != -1) kill(usr_p, SIGSTOP);
@@ -46,6 +51,9 @@ void handler(int sig) {
             if (cpu_p != -1) kill(cpu_p, SIGTERM);
             if (mem_p != -1) kill(mem_p, SIGTERM);
             if (usr_p != -1) kill(usr_p, SIGTERM);
+            waitpid(cpu_p,NULL,0);
+            waitpid(mem_p,NULL,0);
+            waitpid(usr_p,NULL,0);
             _exit(EXIT_SUCCESS); // Use _exit in signal handler
         } else {
             if (cpu_p != -1) kill(cpu_p, SIGCONT);
@@ -201,7 +209,7 @@ int main(int argc, char **argv) {
     sigfillset(&sa.sa_mask); // sigemptyset();
     sa.sa_flags = 0;
 
-    // sigaction(SIGINT, &sa, NULL); // Ctrl C
+    sigaction(SIGINT, &sa, NULL); // Ctrl C
     sigaction(SIGTSTP, &sa, NULL); // Ctrl Z
     // ==============================
 
@@ -225,7 +233,7 @@ int main(int argc, char **argv) {
         char *token = strtok(info_all, "$");
         strcpy(cpu_usages, token);
         token = strtok(NULL, "$");
-        if (token!=NULL)
+        if (token != NULL)
             strcpy(cpu_graphics[i], token);
         read(mem_fd[0], info_all, 1024);
         token = strtok(info_all, "$");
@@ -253,29 +261,30 @@ int main(int argc, char **argv) {
         }
         if (sequential) {
             printf(">>> Iteration %d\n", i);
-        } else
-        {
+        } else {
             printf("\033[2;1H"); //move cursor to line2 1
             fflush(stdout);
         }
-        if(!user_only) {
-            show_memory(kilobytes,num_samples, mem_graphics);
+        if (!user_only) {
+            show_memory(kilobytes, num_samples, mem_graphics);
         }
         //if not show only user
         if (!system_only) {
             show_user_usage(user_info);
             free(user_info);
         }
+        if (user_only & system_only) {
+            show_memory(kilobytes, num_samples, mem_graphics);
+            show_user_usage(user_info);
+            free(user_info);
+            continue;
+        }
         if (user_only) {
             continue;
         }
         show_cpu(sequential, i, num_samples, graphical, cpu_usages, cpu_graphics);
-
-
-
-
-        system_information();
-        uptime();
-        printf("---------------------------------------\n");
     }
+    system_information();
+    uptime();
+    printf("---------------------------------------\n");
 }
