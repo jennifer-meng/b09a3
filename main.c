@@ -113,7 +113,7 @@ int main(int argc, char **argv) {
     char cpu_graphics[num_samples][128];
     char mem_graphics[num_samples][128];
     char kilobytes[128]={0};
-    char cpu_usages[1024]={0};
+    char cpu_usages[128]={0};
 
     for (int i = 0; i < num_samples; i++) {
         cpu_graphics[i][0] = '\0';

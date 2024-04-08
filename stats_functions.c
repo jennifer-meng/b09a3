@@ -80,9 +80,9 @@ void cpu_usage(char cpu_graphics[][128],char* cpu_usages, int i_sample, int grap
     get_cpuinfo((CPUINFO *) &cur_cpu_stat);
     int core_count = get_nprocs(); //get num of cores
     sprintf(cpu_usages,"---------------------------------------\n");
-    sprintf(cpu_usages,"Number of cores: %d\n", core_count);
+    sprintf(cpu_usages,"%sNumber of cores: %d\n",cpu_usages,core_count);
     float cpu_usage=cal_cpuoccupy(pre_cpu_stat, (CPUINFO *) &cur_cpu_stat);
-    sprintf(cpu_usages,"total cpu use = %2.2f\% "    "  \n",cpu_usage);
+    sprintf(cpu_usages,"%stotal cpu use = %2.2f\% "    "  \n",cpu_usages,cpu_usage);
     memcpy(pre_cpu_stat,&cur_cpu_stat,sizeof(CPUINFO));
 
     if(graphics){
