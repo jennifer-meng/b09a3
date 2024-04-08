@@ -133,22 +133,32 @@ char * get_user_usage() {
 
     // printf("---------------------------------------\n");
     // printf("### Sessions/users ###\n");
-    char buf[512];
-    char *user_info=NULL;
+    char buf[512]={0};
+    char *user_info;
+    user_info=NULL;
     setutent();
     struct utmp *user = getutent();
+    int data_size = 0;
+    int num_read=0;
+    char *tmp;
     while (user != NULL) {
         if (user->ut_type == USER_PROCESS) {
-            sprintf(buf,"%s\t%s (%s)\n",user->ut_user, user->ut_line, user->ut_host);
-            char *old_user_info = user_info;
-            user_info= (char *)realloc(old_user_info,(old_user_info==NULL?0:strlen(old_user_info))+strlen(buf)+1);
-
-            if (user_info==NULL) {
-                free(old_user_info);
-                perror("free memory error");
+            memset(buf, 0, 512); // Initialize the newly allocated memory
+            sprintf(buf, "%s\t%s (%s)\n", user->ut_user, user->ut_line, user->ut_host);
+            num_read = strlen(buf)+1;
+            tmp = realloc(user_info, data_size + num_read);
+            if (tmp)
+                memset(tmp + data_size, 0, num_read); // Initialize the newly allocated memory
+            else {
+                perror("realloc");
+                free(user_info);
                 exit(1);
-            } else
-                strcat(user_info,buf);
+            }
+
+            user_info = tmp;
+            memcpy(user_info + data_size, buf, num_read);
+            data_size += num_read;
+
         }
         user = getutent();
     }
