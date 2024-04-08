@@ -394,6 +394,7 @@ int main(int argc, char **argv) {
             cpu_usage(cpu_graphics,i,&pre_cpu_stat);
             if (graphical)
                 show_cpu_graphic(sequential, i, num_samples, cpu_graphics);
+            continue;
         }
         if (user_only) {
             continue;
