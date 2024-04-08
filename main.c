@@ -2,14 +2,8 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include <sys/wait.h>
 #include <string.h>
 #include <signal.h>
-#include <utmp.h> //user
-#include <sys/utsname.h> //for system info
-#include <sys/resource.h> //rusage for memory
-#include <sys/sysinfo.h> //for memory
-#include <math.h>
 #include "stats_functions.h"
 pid_t pid_storage(pid_t pid, int flag, int action) {
     static pid_t cpu_p = -1;
@@ -110,10 +104,10 @@ int main(int argc, char **argv) {
         }
     }
 //    int cpu_i = 0, mem_i = 0;
-    char cpu_graphics[num_samples][128];
-    char mem_graphics[num_samples][128];
-    char kilobytes[128]={0};
-    char cpu_usages[128]={0};
+    char cpu_graphics[num_samples][BUF_LEN];
+    char mem_graphics[num_samples][BUF_LEN];
+    char kilobytes[BUF_LEN]={0};
+    char cpu_usages[BUF_LEN]={0};
 
     for (int i = 0; i < num_samples; i++) {
         cpu_graphics[i][0] = '\0';
@@ -133,7 +127,7 @@ int main(int argc, char **argv) {
         char ret[1024];
         long prev_idle, prev_total;
         for (int i = 0; i < num_samples; i++) {
-            cpu_usage(cpu_graphics, cpu_usages, i, graphical, &pre_cpu_stat);
+            get_cpu_usage(cpu_graphics, cpu_usages, i, graphical, &pre_cpu_stat);
             sprintf(ret, "%s$%s", cpu_usages, cpu_graphics[i]);
             // TODO: 可以考慮用while 一個一個 chunk 寫過去
             write(cpu_fd[1], ret, strlen(ret) + 1);
@@ -158,11 +152,11 @@ int main(int argc, char **argv) {
         close(mem_fd[0]); // close read-end
         close(cpu_fd[0]); // Parent 沒有關, 不小心被copy過來了
 
-        char ret[512];
+        char ret[DOUBLE_BUF_LEN];
         double prev_used = 0.0;
         for (int i = 0; i < num_samples; i++) {
-            //need to add return type to memory_usage
-            memory_usage(kilobytes,mem_graphics, i, graphical, &prev_used);
+            //need to add return type to get_memory_usage
+            get_memory_usage(kilobytes, mem_graphics, i, graphical, &prev_used);
             sprintf(ret,"%s$%s",kilobytes, mem_graphics[i]);
             write(mem_fd[1], ret, strlen(ret) + 1);
             sleep(tdelay);
@@ -188,7 +182,7 @@ int main(int argc, char **argv) {
         close(mem_fd[0]); // close read-end
 
         for (int i = 0; i < num_samples; i++) {
-            char *users_usage=user_usage();
+            char *users_usage= get_user_usage();
             write(usr_fd[1], users_usage, strlen(users_usage) + 1);
             sleep(tdelay);
         }

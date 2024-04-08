@@ -270,7 +270,7 @@ typedef struct {
 //}
 
 //This function prints a list of active user sessions by parsing the contents of the utmp file.
-void user_usage() {
+void get_user_usage() {
     const int MAX_USERS=100;
     printf("---------------------------------------\n");
     printf("### Sessions/users ###\n");
@@ -384,7 +384,7 @@ int main(int argc, char **argv) {
         }
         //if not show only user
         if (!system_only) {
-            user_usage();
+            get_user_usage();
         }
         if (user_only) {
             continue;

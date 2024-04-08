@@ -1,10 +1,7 @@
 #include <stdio.h>
 #include <sys/wait.h>
-#include <unistd.h>
 #include <stdlib.h>
-#include <sys/wait.h>
 #include <string.h>
-#include <signal.h>
 #include <utmp.h> //user
 #include <sys/utsname.h> //for system info
 #include <sys/resource.h> //rusage for memory
@@ -41,41 +38,18 @@ float cal_cpuoccupy(CPUINFO *o, CPUINFO *n) {
 //This function opens /proc/cpuinfo, reads it line by line, and counts the number of unique processor entries to determine the core count.
 void get_cpuinfo(CPUINFO *cpuinfo){
     FILE *fd;
-    int n;
-    char buff[256];
-
     fd = fopen("/proc/stat", "r");
     fscanf(fd, "cpu  %lu %lu %lu %lu %lu %lu %lu", &cpuinfo->utime, &cpuinfo->ntime, &cpuinfo->stime,
            &cpuinfo->itime, &cpuinfo->iowtime, &cpuinfo->irqtime, &cpuinfo->sirqtime);
     fclose(fd);
 }
 
-//int number_cpus=get_nprocs()?
-//int get_cpu_core_count() {
-//    FILE *fp;
-//    char buffer[128];
-//    int cores = 0;
-//    int prev_core = -1;
-//    fp = fopen("/proc/cpuinfo", "r");
-//    while (fgets(buffer, sizeof(buffer), fp) != NULL) {
-//        if (strncmp(buffer, "processor", strlen("processor")) == 0) {
-//            int core;
-//            sscanf(buffer, "processor : %d", &core);
-//            if (core != prev_core) {
-//                cores++;
-//                prev_core = core;
-//            }
-//        }
-//    }
-//    fclose(fp);
-//    return cores;
-//}
 
 //char cpu_graphics[][128]: A 2D character array to store CPU usage graphics.
 //int i_sample: The current sample index for storing the CPU usage data.
 //CPUINFO *pre_cpu_stat: Pointer to a CPUINFO structure containing the previous CPU stats.
 //This function calculates the CPU usage, updates the cpu_graphics array, and updates the pre_cpu_stat with the latest CPU stats.
-void cpu_usage(char cpu_graphics[][128],char* cpu_usages, int i_sample, int graphics, CPUINFO *pre_cpu_stat){
+void get_cpu_usage(char cpu_graphics[][BUF_LEN],char* cpu_usages, int i_sample, int graphics, CPUINFO *pre_cpu_stat){
     CPUINFO cur_cpu_stat;
     get_cpuinfo((CPUINFO *) &cur_cpu_stat);
     int core_count = get_nprocs(); //get num of cores
@@ -86,7 +60,7 @@ void cpu_usage(char cpu_graphics[][128],char* cpu_usages, int i_sample, int grap
     memcpy(pre_cpu_stat,&cur_cpu_stat,sizeof(CPUINFO));
 
     if(graphics){
-        char bars[103] = "|||";
+        char bars[BUF_LEN] = "|||";
         int number_of_bars=(int)cpu_usage;
         for (int i = 1; i <= number_of_bars; i++)
             strcat(bars, "|");
@@ -98,18 +72,9 @@ void cpu_usage(char cpu_graphics[][128],char* cpu_usages, int i_sample, int grap
 //int num_samples: The total number of CPU usage samples.
 //const char cpu_graphics[][128]: The 2D array containing CPU usage graphics.
 //This function displays the CPU usage graphics stored in the cpu_graphics array based on the sequential flag.
-// void show_cpu_graphic(int sequential, int i,int num_samples, const char cpu_graphics[][128]) {
 
-//     if (sequential) {
-//         for (int j = 0; j < num_samples; j++)
-//             printf("%s\n", j == i ? cpu_graphics[j] : "");
-//     } else {
-//         for (int j = 0; j < num_samples; j++)
-//             printf("%s\n", cpu_graphics[j]);
-//     }
-// }
 
-void memory_usage(char *kilobytes,char mem_graphics[][128], int i_sample, int graphics, double *prev_used) {
+void get_memory_usage(char *kilobytes, char mem_graphics[][BUF_LEN], int i_sample, int graphics, double *prev_used) {
     struct rusage usage;
     if (getrusage(RUSAGE_SELF, &usage) != 0) return;
     char buf[512]={0};
@@ -133,8 +98,7 @@ void memory_usage(char *kilobytes,char mem_graphics[][128], int i_sample, int gr
     sprintf(buf, "%.2f GB / %.2f GB  -- %.2f GB / %.2f GB",
             phys_used, phys_tol, vir_used, vir_tol);
     strcat(mem_graphics[i_sample],buf);
-//    printf("buf:%s\n",buf);
-//    printf("mem:%s\n",mem_graphics[i_sample]);
+
     if (graphics) {
         char *rest = mem_graphics[i_sample] + strlen(mem_graphics[i_sample]);
         // sprintf()
@@ -147,7 +111,7 @@ void memory_usage(char *kilobytes,char mem_graphics[][128], int i_sample, int gr
             sym1 = (diff >= 0) ? "#" : ":";
             sym2 = (diff >= 0) ? "*" : "@";
 
-            char tmp[128] = {'\0'};
+            char tmp[BUF_LEN] = {'\0'};
             //add the graphics in tmp
             for (double d = 0.0; d < fabs(diff); d += 0.01)
                 strcat(tmp, sym1);
@@ -164,7 +128,7 @@ typedef struct {
 } User;
 
 //This function prints a list of active user sessions by parsing the contents of the utmp file.
-char * user_usage() {
+char * get_user_usage() {
 
     // printf("---------------------------------------\n");
     // printf("### Sessions/users ###\n");
@@ -191,7 +155,7 @@ char * user_usage() {
     endutent();
     return user_info;
 }
-void show_memory(char *kilobyates,int num_samples, char mem_graphics[num_samples][128]) {
+void show_memory(char *kilobyates,int num_samples, char mem_graphics[num_samples][BUF_LEN]) {
     printf("%s",kilobyates);
     printf("### Memory ### (Phys.Used/Tot -- Virtual Used/Tot\n");
 
@@ -199,7 +163,7 @@ void show_memory(char *kilobyates,int num_samples, char mem_graphics[num_samples
         printf("%s\n", mem_graphics[j]);
     }
 }
-void show_cpu(int sequential, int i,int num_samples, int graphics, char cpu_usages[1024], const char cpu_graphics[][128]) {
+void show_cpu(int sequential, int i,int num_samples, int graphics, char *cpu_usages, const char cpu_graphics[][BUF_LEN]) {
     printf("%s", cpu_usages);
     if (sequential) {
         for (int j = 0; j < num_samples; j++)
@@ -210,7 +174,7 @@ void show_cpu(int sequential, int i,int num_samples, int graphics, char cpu_usag
             printf("%s\n", cpu_graphics[j]);
     }
 }
-void show_user_usage(char users_usage[1024]){
+void show_user_usage(char *users_usage){
     printf("---------------------------------------\n");
     printf("### Sessions/users ###\n");
     printf("%s\n", users_usage);
