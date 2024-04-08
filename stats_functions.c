@@ -145,8 +145,8 @@ char * get_user_usage() {
         if (user->ut_type == USER_PROCESS) {
             memset(buf, 0, 512); // Initialize the newly allocated memory
             sprintf(buf, "%s\t%s (%s)\n", user->ut_user, user->ut_line, user->ut_host);
-            num_read = strlen(buf)+1;
-            tmp = realloc(user_info, data_size + num_read);
+            num_read = strlen(buf);
+            tmp = realloc(user_info, data_size + num_read+1);
             if (tmp)
                 memset(tmp + data_size, 0, num_read); // Initialize the newly allocated memory
             else {
@@ -156,7 +156,7 @@ char * get_user_usage() {
             }
 
             user_info = tmp;
-            memcpy(user_info + data_size, buf, num_read);
+            memcpy(user_info + data_size, buf, num_read+1);
             data_size += num_read;
 
         }
