@@ -54,9 +54,9 @@ void get_cpu_usage(char cpu_graphics[][BUF_LEN],char* cpu_usages, int i_sample, 
     get_cpuinfo((CPUINFO *) &cur_cpu_stat);
     int core_count = get_nprocs(); //get num of cores
     sprintf(cpu_usages,"---------------------------------------\n");
-    sprintf(cpu_usages,"%sNumber of cores: %d\n",cpu_usages,core_count);
+    sprintf(cpu_usages+strlen(cpu_usages),"Number of cores: %d\n",core_count);
     float cpu_usage=cal_cpuoccupy(pre_cpu_stat, (CPUINFO *) &cur_cpu_stat);
-    sprintf(cpu_usages,"%stotal cpu use = %2.2f\% "    "  \n",cpu_usages,cpu_usage);
+    sprintf(cpu_usages+strlen(cpu_usages),"total cpu use = %2.2f\% "    "  \n",cpu_usage);
     memcpy(pre_cpu_stat,&cur_cpu_stat,sizeof(CPUINFO));
 
     if(graphics){
@@ -78,8 +78,9 @@ void get_memory_usage(char *kilobytes, char mem_graphics[][BUF_LEN], int i_sampl
     struct rusage usage;
     if (getrusage(RUSAGE_SELF, &usage) != 0) return;
     char buf[512]={0};
+
     sprintf(kilobytes,"Memory usage: %ld kilobytes\n", usage.ru_maxrss);
-    sprintf(kilobytes,"%s---------------------------------------\n",kilobytes);
+    strcat(kilobytes,"---------------------------------------\n");
     struct sysinfo info;
     sysinfo(&info);
 
@@ -146,8 +147,8 @@ char * get_user_usage() {
                 free(old_user_info);
                 perror("free memory error");
                 exit(1);
-            }
-            strcat(user_info,buf);
+            } else
+                strcat(user_info,buf);
         }
         user = getutent();
     }
@@ -225,13 +226,13 @@ void uptime() {
         strcat(output, " ");
     }
     if (hours>=0) {
-        sprintf(output, "%s%d:", output, hours);
+        sprintf(output+ strlen(output), "%d:", hours);
     }
     if (mins) {
-        sprintf(output, "%s%d:", output, mins);
+        sprintf(output+ strlen(output), "%d:", mins);
     }
     if (secs) {
-        sprintf(output, "%s%d", output, secs);
+        sprintf(output+ strlen(output), "%d", secs);
     }
     //System running since last reboot: 3 days 19:27:30 (91:27:30)
     sprintf(output, "%s (%d:%d:%d)",output,days*24+hours,mins,secs);

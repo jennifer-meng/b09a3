@@ -184,6 +184,7 @@ int main(int argc, char **argv) {
         for (int i = 0; i < num_samples; i++) {
             char *users_usage= get_user_usage();
             write(usr_fd[1], users_usage, strlen(users_usage) + 1);
+            free(users_usage);
             sleep(tdelay);
         }
         close(usr_fd[1]);
