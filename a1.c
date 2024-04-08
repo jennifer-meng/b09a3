@@ -386,6 +386,15 @@ int main(int argc, char **argv) {
         if (!system_only) {
             get_user_usage();
         }
+        if (user_only & system_only)
+        {
+            memory_usage(mem_graphics, i, graphical, &prev_used);
+            show_memory(tdelay, num_samples, mem_graphics);
+            get_user_usage();
+            cpu_usage(cpu_graphics,i,&pre_cpu_stat);
+            if (graphical)
+                show_cpu_graphic(sequential, i, num_samples, cpu_graphics);
+        }
         if (user_only) {
             continue;
         }
