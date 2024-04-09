@@ -12,6 +12,10 @@
 
 char *get_user_info(const int *usr_fd);
 
+int get_sfd();
+
+void clearup(pid_t cpu_p, pid_t mem_p, pid_t usr_p, pid_t show_p);
+
 int main(int argc, char **argv) {
     // defualt arguments
     int sequential = 0;
@@ -43,7 +47,6 @@ int main(int argc, char **argv) {
             set_tdelay = 1;
             tdelay = strtol(argv[i] + 9, NULL, 10);
         }
-
     }
     if (!set_num_sample && argc > 1) {
         int num;
@@ -69,7 +72,6 @@ int main(int argc, char **argv) {
         cpu_graphics[i][0] = '\0';
         mem_graphics[i][0] = '\0';
     }
-
     //processor for cpu calculation
     int cpu_fd[2];
     int mem_fd[2];
@@ -90,7 +92,6 @@ int main(int argc, char **argv) {
         for (int i = 0; i < num_samples; i++) {
             get_cpu_usage(cpu_graphics, cpu_usages, i, graphical, &pre_cpu_stat);
             sprintf(ret, "%s$%s", cpu_usages, cpu_graphics[i]);
-            // TODO: 可以考慮用while 一個一個 chunk 寫過去
             write(cpu_fd[1], ret, strlen(ret) + 1);
             sleep(tdelay);
         }
@@ -100,11 +101,8 @@ int main(int argc, char **argv) {
         // Parent
         close(cpu_fd[1]);
     }
-
     //processor for memory usage
-
     pipe(mem_fd);
-
     pid_t mem_p = fork();
     if (mem_p == -1) {}
     else if (mem_p == 0) {
@@ -163,7 +161,6 @@ int main(int argc, char **argv) {
         exit(EXIT_FAILURE);
     }
 
-
     pid_t show_p = fork();
     if (show_p == -1) {}
     else if (show_p == 0) {
@@ -176,8 +173,6 @@ int main(int argc, char **argv) {
         fflush(stdout);
         printf("Nbr of samples: %d -- every %d secs\n", num_samples, tdelay);
         for (int i = 0; i < num_samples; i++) {
-
-            // 没有信号到达，继续循环
             char info_all[1024];
             read(cpu_fd[0], info_all, 512);
             char *token = strtok(info_all, "$");
@@ -190,10 +185,7 @@ int main(int argc, char **argv) {
             strcpy(kilobytes, token);
             token = strtok(NULL, "$");
             strcpy(mem_graphics[i], token);
-
-//        printf("%s\n",mem_graphics[i]);
             char *user_info = get_user_info(usr_fd);
-
             if (sequential) {
                 printf(">>> Iteration %d\n", i);
             } else {
@@ -224,7 +216,6 @@ int main(int argc, char **argv) {
         uptime();
         printf("---------------------------------------\n");
 
-
         char message = 'E'; // 发送结束消息
         write(com_fd[1], &message, sizeof(char)); // 向父进程发送消息
         close(com_fd[1]); // 关闭写端
@@ -232,43 +223,19 @@ int main(int argc, char **argv) {
     }
 
 
-    sigset_t mask;
-    int sfd;
     struct signalfd_siginfo fdsi;
-    ssize_t s;
-
-// 阻塞信号
-    sigemptyset(&mask);
-    sigaddset(&mask, SIGINT);
-    sigaddset(&mask, SIGTSTP);
-    if (sigprocmask(SIG_BLOCK, &mask, NULL) == -1) {
-        perror("sigprocmask");
-        exit(EXIT_FAILURE);
-    }
-
-// 创建 signalfd
-    sfd = signalfd(-1, &mask, 0);
-    if (sfd == -1) {
-        perror("signalfd");
-        exit(EXIT_FAILURE);
-    }
-    int flags = fcntl(sfd, F_GETFL, 0);
-    if (flags == -1) {
-        perror("fcntl get");
-        exit(EXIT_FAILURE);
-    }
-
-    if (fcntl(sfd, F_SETFL, flags | O_NONBLOCK) == -1) {
-        perror("fcntl set");
-        exit(EXIT_FAILURE);
-    }
+    int sfd = get_sfd();
     char message;
     close(com_fd[1]);
+    // check if the display process whether is over
     while (read(com_fd[0], &message, sizeof(char)) <= 0) {
+        ssize_t s;
+        //read ctrl-c and ctrl-z
         s = read(sfd, &fdsi, sizeof(struct signalfd_siginfo));
         if (s == -1) {
             if (errno == EAGAIN) {
-                // 没有信号到达，继续循环
+                // no signal  arrived
+                usleep(100);
                 continue;
             } else {
                 // 发生错误
@@ -293,8 +260,13 @@ int main(int argc, char **argv) {
                 printf("Received ctrl-z signal,ignore\n");
             }
         }
-        usleep(100);
+
     }
+    clearup(cpu_p, mem_p, usr_p, show_p);
+
+}
+
+void clearup(pid_t cpu_p, pid_t mem_p, pid_t usr_p, pid_t show_p) {
     kill(cpu_p, SIGTERM); // kill sub process
     kill(mem_p, SIGTERM); // kill sub process
     kill(usr_p, SIGTERM); // kill sub process
@@ -304,7 +276,37 @@ int main(int argc, char **argv) {
     waitpid(mem_p,&status,0);
     waitpid(usr_p,&status,0);
     waitpid(show_p,&status,0);
+}
 
+int get_sfd() {
+    int sfd;
+    sigset_t mask;
+    ssize_t s;
+
+    sigemptyset(&mask);
+    sigaddset(&mask, SIGINT);
+    sigaddset(&mask, SIGTSTP);
+    if (sigprocmask(SIG_BLOCK, &mask, NULL) == -1) {
+        perror("sigprocmask");
+        exit(EXIT_FAILURE);
+    }
+
+    sfd = signalfd(-1, &mask, 0);
+    if (sfd == -1) {
+        perror("signalfd");
+        exit(EXIT_FAILURE);
+    }
+    int flags = fcntl(sfd, F_GETFL, 0);
+    if (flags == -1) {
+        perror("fcntl get");
+        exit(EXIT_FAILURE);
+    }
+
+    if (fcntl(sfd, F_SETFL, flags | O_NONBLOCK) == -1) {
+        perror("fcntl set");
+        exit(EXIT_FAILURE);
+    }
+    return sfd;
 }
 
 char *get_user_info(const int *usr_fd) {
