@@ -29,3 +29,6 @@ add_executable(b09a3
 #        pipe1.c
 #        pipe2.c
 )
+add_executable(b09
+        none_block_pipe.c
+)
