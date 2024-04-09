@@ -216,9 +216,9 @@ int main(int argc, char **argv) {
         uptime();
         printf("---------------------------------------\n");
 
-        char message = 'E'; // 发送结束消息
-        write(com_fd[1], &message, sizeof(char)); // 向父进程发送消息
-        close(com_fd[1]); // 关闭写端
+        char message = 'E'; // signal to main process to terminate
+        write(com_fd[1], &message, sizeof(char)); // send to main process
+        close(com_fd[1]); // close write end
         exit(EXIT_SUCCESS);
     }
 
@@ -248,7 +248,7 @@ int main(int argc, char **argv) {
             // 处理信号
             if (fdsi.ssi_signo == SIGINT) {
                 char response[32];
-                printf("Received SIGINT. Do you want to exit? (yes/no): ");
+                printf("Received ctrl-c. Do you want to exit? (yes/no): ");
                 fgets(response, sizeof(response), stdin);
                 response[strcspn(response, "\n")] = '\0'; // 去除换行符
                 if (strcmp(response, "yes") == 0) {
@@ -257,7 +257,7 @@ int main(int argc, char **argv) {
 
                 }
             } else {
-                printf("Received ctrl-z signal,ignore\n");
+                printf("Received ctrl-z signal,ignored!\n");
             }
         }
 
