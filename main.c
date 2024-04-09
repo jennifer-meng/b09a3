@@ -247,6 +247,10 @@ int main(int argc, char **argv) {
         if (s == sizeof(struct signalfd_siginfo)) {
             // 处理信号
             if (fdsi.ssi_signo == SIGINT) {
+                kill(cpu_p, SIGSTOP); // suspend sub process
+                kill(mem_p, SIGSTOP); // suspend sub process
+                kill(usr_p, SIGSTOP); // suspend sub process
+                kill(show_p, SIGSTOP); // suspend sub process
                 char response[32];
                 printf("Received ctrl-c. Do you want to exit? (yes/no): ");
                 fgets(response, sizeof(response), stdin);
@@ -256,6 +260,10 @@ int main(int argc, char **argv) {
                     break;
 
                 }
+                kill(cpu_p, SIGCONT); // resume sub process
+                kill(mem_p, SIGCONT); // resume sub process
+                kill(usr_p, SIGCONT); // resume sub process
+                kill(show_p, SIGCONT); // resume sub process
             } else {
                 printf("Received ctrl-z signal,ignored!\n");
             }
