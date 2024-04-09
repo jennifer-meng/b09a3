@@ -5,9 +5,8 @@
 #ifndef B09_STATS_FUNCTIONS_H
 #define B09_STATS_FUNCTIONS_H
 #define BUF_LEN 256
-#define DOUBLE_BUF_LEN BUF_LEN*2+1
+#define DOUBLE_BUF_LEN (BUF_LEN*2+1)
 //extern char *get_user_usage();
-//
 //extern char *WTF_cpu(long *prev_idle, long *prev_total) ;
 //extern char *VC_memory(int include_graphics, double *prev_used) ;
 typedef struct cpu_info {
