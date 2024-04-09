@@ -10,17 +10,17 @@
 #include "stats_functions.h"
 
 float cal_cpuoccupy(CPUINFO *o, CPUINFO *n) {
-    unsigned long od, nd;
-    unsigned long id, sd;
+    unsigned long T1, T2;
+    unsigned long U1, U2;
     float cpu_use = 0;
-    od = (unsigned long) (o->utime + o->ntime + o->stime + o->itime
+    T1 = (unsigned long) (o->utime + o->ntime + o->stime + o->itime
                           + o->iowtime + o->irqtime + o->sirqtime);//first time
-    nd = (unsigned long) (n->utime + n->ntime + n->stime + n->itime
+    T2 = (unsigned long) (n->utime + n->ntime + n->stime + n->itime
                           + n->iowtime + n->irqtime + n->sirqtime);//second time
-    id = (unsigned long) (n->itime - o->itime);    //idle
-
-    if ((nd - od) != 0) {
-        cpu_use = 100 - (float)(id * 100.00) / (nd - od);
+    U1 = (unsigned long) (T1-o->itime );    //idle
+    U2 = (unsigned long) (T2-n->itime );    //idle
+    if ((T2 - T1) != 0) {
+        cpu_use = (U2-U1)*100.00 / (T2 - T1);
     } else {
         // In case there's no change in CPU time, set CPU usage to 0%
         cpu_use = 0;
